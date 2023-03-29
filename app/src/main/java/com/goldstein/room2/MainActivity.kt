@@ -1,10 +1,15 @@
 package com.goldstein.room2
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,20 +42,17 @@ class MainActivity : AppCompatActivity() {
             UserRepository(UserDatabase.getDatabaseInstance(applicationContext).userDao())
         val viewModelFactory = ViewModelFactory(repository)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserViewModel::class.java]
-        nameTextView = findViewById(R.id.username_tv)
-        emailTextView = findViewById(R.id.email_tv)
-        ageTextView = findViewById(R.id.age_tv)
         recyclerView = findViewById(R.id.recyclerView)
         fab = findViewById(R.id.addUser_fab)
 
-
-
         //insert user
         fab.setOnClickListener {
-            insertuser()
-            loadUsers()
-
+            showDialog(it)
         }
+
+//        viewModel.users.observe(this, Observer {
+//
+//        })
 
     }
 
@@ -74,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun insertuser() {
+    private fun insertUser() {
         val name = nameTextView.text.toString()
         val email = emailTextView.text.toString()
         val age = ageTextView.text.toString()
@@ -85,5 +87,52 @@ class MainActivity : AppCompatActivity() {
         nameTextView.text.clear()
         emailTextView.text.clear()
         ageTextView.text.clear()
+    }
+
+    fun showDialog(view: View) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Enter Details")
+
+        val inflater = layoutInflater
+        val dialogLayout = inflater.inflate(R.layout.dialog_layout, null)
+        val etName = dialogLayout.findViewById<EditText>(R.id.et_name)
+        val etEmail = dialogLayout.findViewById<EditText>(R.id.et_email)
+        val etAge = dialogLayout.findViewById<EditText>(R.id.et_age)
+        builder.setView(dialogLayout)
+
+        builder.setPositiveButton("Submit") { dialogInterface, i ->
+            // Handle submit button click
+            val name = etName.text.toString()
+            val email = etEmail.text.toString()
+            val age = etAge.text.toString()
+
+            val user = User(name = name, email = email, age = age.toInt())
+            viewModel.insertUser(user)
+
+            etName.text.clear()
+            etEmail.text.clear()
+            etAge.text.clear()
+        }
+
+        builder.setNegativeButton("Cancel") { dialogInterface, i ->
+            // Handle cancel button click
+        }
+        builder.show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater: MenuInflater = menuInflater
+        inflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.refresh -> {
+                loadUsers()
+                true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
     }
 }

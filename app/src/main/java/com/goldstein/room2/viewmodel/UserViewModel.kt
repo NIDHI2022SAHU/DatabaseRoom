@@ -19,8 +19,23 @@ class UserViewModel(
 //        getAllUsers()
 //    }
 
+    private val _users = MutableLiveData<List<User>>()
+    val users: LiveData<List<User>>
+        get() = _users
+
+//    init {
+//        getUsers()
+//    }
+
+    private fun getUsers() {
+        viewModelScope.launch {
+            val result = userRepository.getAllUsers()
+            _users.value = result
+        }
+    }
+
     suspend fun getAllUsers(): List<User> {
-       return userRepository.getAllUsers()
+        return userRepository.getAllUsers()
 //        viewModelScope.launch {
 //            val result = userRepository.getAllUsers()
 ////            _users.value = result
