@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.goldstein.room2.db.UserDatabase
@@ -38,23 +39,48 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val repository =
-            UserRepository(UserDatabase.getDatabaseInstance(applicationContext).userDao())
+        val repository = UserRepository(UserDatabase.getDatabaseInstance(applicationContext).userDao())
         val viewModelFactory = ViewModelFactory(repository)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserViewModel::class.java]
+
         recyclerView = findViewById(R.id.recyclerView)
         fab = findViewById(R.id.addUser_fab)
 
-        //insert user
+        initRecyclerview()
+
         fab.setOnClickListener {
             showDialog(it)
         }
 
-//        viewModel.users.observe(this, Observer {
-//
-//        })
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
+            }
 
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val user = adapter.getUserAtPosition(position)
+                if (direction == ItemTouchHelper.RIGHT) {
+                    showEditDialog(user)
+                } else if (direction == ItemTouchHelper.LEFT) {
+                    showDeleteConfirmationDialog(user)
+                }
+            }
+        })
+
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+
+        loadUsers()
     }
+
+
 
     private fun initRecyclerview() {
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
@@ -119,6 +145,55 @@ class MainActivity : AppCompatActivity() {
         }
         builder.show()
     }
+
+    fun showDeleteConfirmationDialog(user: User) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Delete User")
+        builder.setMessage("Are you sure you want to delete this user?")
+
+        builder.setPositiveButton("Yes") { dialog, which ->
+            viewModel.deleteUser(user)
+            adapter.notifyDataSetChanged()
+            Toast.makeText(this, "User deleted", Toast.LENGTH_SHORT).show()
+        }
+
+        builder.setNegativeButton("No") { dialog, which ->
+            adapter.notifyDataSetChanged()
+        }
+
+        builder.show()
+    }
+    fun showEditDialog(user: User) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Edit User Details")
+
+        val inflater = layoutInflater
+        val dialogLayout = inflater.inflate(R.layout.dialog_layout, null)
+        val etName = dialogLayout.findViewById<EditText>(R.id.et_name)
+        val etEmail = dialogLayout.findViewById<EditText>(R.id.et_email)
+        val etAge = dialogLayout.findViewById<EditText>(R.id.et_age)
+        etName.setText(user.name)
+        etEmail.setText(user.email)
+        etAge.setText(user.age.toString())
+        builder.setView(dialogLayout)
+
+        builder.setPositiveButton("Save") { dialogInterface, i ->
+            // Handle save button click
+            val name = etName.text.toString()
+            val email = etEmail.text.toString()
+            val age = etAge.text.toString()
+
+            val updatedUser = user.copy(name = name, email = email, age = age.toInt())
+            viewModel.updateUser(updatedUser)
+        }
+
+        builder.setNegativeButton("Cancel") { dialogInterface, i ->
+            // Handle cancel button click
+        }
+        builder.show()
+    }
+
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater: MenuInflater = menuInflater
