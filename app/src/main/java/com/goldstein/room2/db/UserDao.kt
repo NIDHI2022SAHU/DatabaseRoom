@@ -1,5 +1,6 @@
 package com.goldstein.room2.db
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.goldstein.room2.model.User
 
@@ -17,8 +18,9 @@ interface UserDao {
     //update user
     @Update
     suspend fun updateUser(user: User)
-
-
+    //get user by id
+    @Query("SELECT * FROM users WHERE id = :id")
+    suspend fun getUserById(id: Int): User
 
     //delete user
     @Delete

@@ -65,4 +65,9 @@ class UserViewModel(
             userRepository.deleteAll()
         }
     }
+    fun getUserById(id: Int) {
+        viewModelScope.launch {
+            userRepository.getUserById(id)
+        }
+    }
 }

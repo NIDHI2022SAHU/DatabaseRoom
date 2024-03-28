@@ -10,9 +10,14 @@ import com.goldstein.room2.model.User
 class UserAdapter(
     private var users: List<User>
 ) : RecyclerView.Adapter<UserAdapter.UserViewHolder>() {
+    fun updateUsers(users: List<User>) {
+        this.users = users
+        notifyDataSetChanged()
+    }
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.dialog_layout, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.user_layout, parent, false)
         return UserViewHolder(view)
     }
 
@@ -21,6 +26,7 @@ class UserAdapter(
     }
 
     override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
+
         holder.bind(users[position])
     }
 
@@ -42,6 +48,9 @@ class UserAdapter(
             nameTextView.text = user.name
             emailTextView.text = user.email
             ageTextView.text = user.age.toString()
+
         }
+
+
     }
 }

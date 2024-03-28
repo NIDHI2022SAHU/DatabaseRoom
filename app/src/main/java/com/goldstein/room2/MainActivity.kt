@@ -1,6 +1,8 @@
 package com.goldstein.room2
 
+
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -39,7 +41,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val repository = UserRepository(UserDatabase.getDatabaseInstance(applicationContext).userDao())
+        val repository =
+            UserRepository(UserDatabase.getDatabaseInstance(applicationContext).userDao())
         val viewModelFactory = ViewModelFactory(repository)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserViewModel::class.java]
 
@@ -65,12 +68,22 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                val user = adapter.getUserAtPosition(position)
-                if (direction == ItemTouchHelper.RIGHT) {
-                    showEditDialog(user)
-                } else if (direction == ItemTouchHelper.LEFT) {
-                    showDeleteConfirmationDialog(user)
+                try {
+                    val position = viewHolder.adapterPosition
+                    val user = adapter.getUserAtPosition(position)
+                    if (direction == ItemTouchHelper.RIGHT) {
+                        showEditDialog(user)
+                    } else if (direction == ItemTouchHelper.LEFT) {
+                        showDeleteConfirmationDialog(user)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace() // Log the exception
+                    Toast.makeText(
+                        applicationContext,
+                        "An error occurred: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.e("Error Swipe", "Error ${e.message}")
                 }
             }
         })
@@ -78,12 +91,15 @@ class MainActivity : AppCompatActivity() {
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
         loadUsers()
-    }
-
+}
 
 
     private fun initRecyclerview() {
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
+
+        // Initialize adapter
+        adapter = UserAdapter(mutableListOf())
+        recyclerView.adapter = adapter
     }
 
     private fun loadUsers() {
@@ -95,20 +111,30 @@ class MainActivity : AppCompatActivity() {
                     "Total Size ${users.size}",
                     Toast.LENGTH_LONG
                 ).show()
-                initRecyclerview()
-                val adapter = UserAdapter(users)
-                recyclerView.adapter = adapter
+
+                adapter.updateUsers(users)
             }
         }
     }
 
+
     private fun insertUser() {
         val name = nameTextView.text.toString()
         val email = emailTextView.text.toString()
-        val age = ageTextView.text.toString()
+        val age = ageTextView.text.toString().toIntOrNull()
 
-        val user = User(name = name, email = email, age = age.toInt())
-        viewModel.insertUser(user)
+//        val user = User(name = name, email = email, age = age.toInt())
+//        viewModel.insertUser(user)
+        if (name.isNotEmpty() && email.isNotEmpty() && age != null) {
+            val user = User(name = name, email = email, age = age)
+            CoroutineScope(Dispatchers.IO).launch {
+                viewModel.insertUser(user)
+                loadUsers()
+            }
+        } else {
+            Toast.makeText(this, "Please enter valid data", Toast.LENGTH_SHORT).show()
+        }
+
 
         nameTextView.text.clear()
         emailTextView.text.clear()
@@ -192,7 +218,6 @@ class MainActivity : AppCompatActivity() {
         }
         builder.show()
     }
-
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
